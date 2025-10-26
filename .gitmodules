@@ -1,0 +1,6 @@
+[submodule "mine_gen/cubiomes_sys/cubiomes"]
+	path = mine_gen/cubiomes_sys/cubiomes
+	url = https://github.com/Cubitect/cubiomes
+[submodule "yarn"]
+	path = yarn
+	url = https://github.com/FabricMC/yarn
