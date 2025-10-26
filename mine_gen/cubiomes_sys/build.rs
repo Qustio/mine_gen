@@ -33,7 +33,12 @@ fn main() {
                	"cubiomes/quadbase.h",
                 "cubiomes/tests.c"
             ])
-            .blocklist_item("FP_.*")
+            .allowlist_file("./cubiomes/.*")
+            .allowlist_file("cubiomes/tests.c")
+            .translate_enum_integer_types(true)
+            .default_enum_style(bindgen::EnumVariation::Rust { non_exhaustive: true })
+            .allowlist_recursively(true)
+            .layout_tests(false)
             // Tell cargo to invalidate the built crate whenever any of the
             // included header files changed.
             .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))

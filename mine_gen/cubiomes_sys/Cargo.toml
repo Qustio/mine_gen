@@ -8,7 +8,7 @@ edition = "2024"
 
 
 [build-dependencies]
-bindgen = "0.72.1"
+bindgen = { version = "0.72.1", features = ["runtime", "logging", "prettyplease"], default-features = false }
 cc = "1.2.43"
 cmake = "0.1.54"
 
