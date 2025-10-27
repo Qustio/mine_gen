@@ -1,0 +1,8 @@
+[package]
+name = "cubiomes"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cubiomes_sys = { path = "../cubiomes_sys" }
+num_enum = "0.7.5"
