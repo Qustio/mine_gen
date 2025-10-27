@@ -1,5 +1,4 @@
 use std::env;
-use std::io::Read;
 use std::path::PathBuf;
 
 fn main() {
@@ -15,7 +14,11 @@ fn main() {
            	"cubiomes/quadbase.c",
             "cubiomes/tests.c",
         ])
-        .flag_if_supported("-Dmain=disabled_main")
+        .flags([
+            "-Wno-unused-parameter",
+            "-Wno-unused-variable",
+            "-Dmain=disabled_main"
+        ])
         .compile("cubiomes");
     println!("cargo:rustc-link-search=native={}", "cubiomes");
     println!("cargo:rustc-link-lib=static=cubiomes");
