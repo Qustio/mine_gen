@@ -1,0 +1,6 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/com.qustio.cubiomesgtk.desktop.in
+data/com.qustio.cubiomesgtk.metainfo.xml.in
+data/com.qustio.cubiomesgtk.gschema.xml
+src/window.ui

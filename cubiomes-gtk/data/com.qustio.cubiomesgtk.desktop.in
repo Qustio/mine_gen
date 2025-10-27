@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=cubiomesgtk
+Exec=cubiomesgtk
+Icon=com.qustio.cubiomesgtk
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=GTK;
+StartupNotify=true
+DBusActivatable=true

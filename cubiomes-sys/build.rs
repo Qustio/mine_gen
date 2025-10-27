@@ -20,7 +20,7 @@ fn main() {
             "-Dmain=disabled_main"
         ])
         .compile("cubiomes");
-    println!("cargo:rustc-link-search=native={}", "cubiomes");
+    println!("cargo:rustc-link-search=native=cubiomes");
     println!("cargo:rustc-link-lib=static=cubiomes");
     let bindings = bindgen::Builder::default()
             // The input header we would like to generate

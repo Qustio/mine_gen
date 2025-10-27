@@ -2,5 +2,5 @@
 	path = yarn
 	url = https://github.com/FabricMC/yarn
 [submodule "cubiomes"]
-	path = cubiomes_sys/cubiomes
+	path = cubiomes-sys/cubiomes
 	url = https://github.com/Cubitect/cubiomes
