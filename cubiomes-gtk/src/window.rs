@@ -1,9 +1,13 @@
 
 use gtk::prelude::*;
 use adw::subclass::prelude::*;
-use gtk::{gio, glib};
+use gtk::{gio, glib, gdk};
 
 mod imp {
+    use std::cell::RefCell;
+
+    use gtk::glib::property::PropertySet;
+
     use super::*;
 
     #[derive(Debug, Default, gtk::CompositeTemplate)]
@@ -11,7 +15,8 @@ mod imp {
     pub struct CubiomesgtkWindow {
         // Template widgets
         #[template_child]
-        pub label: TemplateChild<gtk::Label>,
+        pub boxx: TemplateChild<gtk::Box>,
+        pub gl: RefCell<Option<gtk::GLArea>>
     }
 
     #[glib::object_subclass]
@@ -29,8 +34,47 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for CubiomesgtkWindow {}
-    impl WidgetImpl for CubiomesgtkWindow {}
+    impl ObjectImpl for CubiomesgtkWindow {
+        fn constructed(&self) {
+            self.parent_constructed();
+            let a = gtk::GLArea::builder()
+                .width_request(100)
+                .height_request(200)
+                .build();
+            a.connect_realize(|r| {
+                r.make_current();
+                // TODO make gl init or use something different
+            });
+            a.connect_render(|r, g| {
+                // unsafe {
+                //     gl::ClearColor(0.0, 0.0, 0.0, 0.0);
+                //     gl::Clear(gl::CLEAR_BUFFER);
+                // }
+                glib::Propagation::Proceed
+            });
+            self.boxx.append(&a);
+            
+            //gdk::Texture::from_bytes(&)
+            //self.gl.set(Some(a));
+        }
+    }
+    impl WidgetImpl for CubiomesgtkWindow {
+        fn snapshot(&self, snapshot: &gtk::Snapshot) {
+            self.parent_snapshot(snapshot);
+            let bytes = glib::Bytes::from_owned([1, 2, 3]);
+            let pb: gtk::gdk_pixbuf::Pixbuf = gdk::gdk_pixbuf::Pixbuf::from_bytes(
+                &bytes,
+                gtk::gdk_pixbuf::Colorspace::Rgb,
+                false,
+                8,
+                1,
+                1,
+                0
+            );
+            let texture = gdk::Texture::for_pixbuf(&pb);
+            snapshot.append_texture(&texture, &gtk::graphene::Rect::new(200.0, 200.0, 100.0, 100.0));
+        }
+    }
     impl WindowImpl for CubiomesgtkWindow {}
     impl ApplicationWindowImpl for CubiomesgtkWindow {}
     impl AdwApplicationWindowImpl for CubiomesgtkWindow {}

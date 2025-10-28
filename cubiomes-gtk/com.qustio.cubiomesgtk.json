@@ -43,7 +43,8 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "file:///home/qustio/Projects/Mine"
+                    "branch": "main",
+                    "url" : ".."
                 }
             ]
         }
