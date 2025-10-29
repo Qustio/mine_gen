@@ -1,7 +1,8 @@
-use std::mem::MaybeUninit;
-use cubiomes_sys::{allocCache, applySeed, genArea, genBiomes, getBiomeAt, setupGenerator};
+use std::{alloc::Layout, mem::MaybeUninit, pin::Pin};
+use cubiomes_sys::{allocCache, applySeed, biomesToImage, genBiomes, getBiomeAt, getMinCacheSize, initBiomeColors, setupGenerator};
 use super::*;
 
+#[derive(Debug)]
 pub struct Generator {
     generator: MaybeUninit<cubiomes_sys::Generator>,
 }
@@ -12,6 +13,7 @@ impl Generator {
         unsafe {
             setupGenerator(generator.as_mut_ptr(), version as i32, 0);
         }
+        let generator = generator;
         Self { generator }
     }
 
@@ -35,29 +37,36 @@ impl Generator {
         }
     }
 
-    pub fn alloc_cache(&self, range: &mut Range)
+    pub fn alloc_cache(&self, range: &mut Range) -> *mut i32
     {
         unsafe {
-            let c = allocCache(self.generator.as_ptr(), range.get_range());
-            range.cache = Some(c);
+            let size = getMinCacheSize(
+                self.generator.as_ptr(),
+                range.scale,
+                range.sx,
+                range.sy,
+                range.sz
+            );
+            allocCache(self.generator.as_ptr(), range.get_range())
+            //range.cache = Some(c);
         }
     }
 
-    pub fn gen_biomes(&self, range: &mut Range) -> Result<(), i32> {
+    pub fn gen_biomes(&self, range: &mut Range, cache: *mut i32) -> Result<(), i32> {
         unsafe {
-            if let Some(cache) = range.cache {
-                match genBiomes(self.generator.as_ptr(), cache, range.get_range()) {
-                    0 => Ok(()),
-                    e => Err(e)
-                }
-            } else {
-                Err(0)
+            match genBiomes(
+                self.generator.as_ptr(), 
+                cache, 
+                range.get_range()
+            ) {
+                0 => Ok(()),
+                e => Err(e)
             }
         }
     }
 }
 
-
+#[derive(Debug)]
 pub struct Range {
     pub scale: i32,
     pub x: i32,
@@ -66,7 +75,7 @@ pub struct Range {
     pub sz: i32,
     pub y: i32,
     pub sy: i32,
-    cache: Option<*mut i32>,
+    pub cache: Option<*mut i32>,
 }
 
 impl Range {
@@ -91,21 +100,36 @@ impl Range {
         }
     }
     
+    pub fn biomes_to_image(&mut self, colors: &mut[[u8; 3]; 256]) -> Result<Vec<u8>, ()> {
+        let p4c = 1;
+        let (img_height, img_width) = (self.sx * p4c, self.sz * p4c);
+        let mut rgb = vec![0u8; (img_height * img_width * 3) as usize];
+        unsafe {
+            biomesToImage(
+                rgb.as_mut_ptr(),
+                colors.as_mut_ptr(),
+                self.cache.unwrap(),
+                self.sx as u32,
+                self.sz as u32,
+                p4c as u32,
+                2
+            );
+        }
+        Ok(rgb)
+    }
+
     pub fn get_biome_at(&self, x: i32, y: i32, z: i32) -> Result<Biome, ()> {
-        if let Some(cache) = self.cache {
-            unsafe {
-                let b = Biome::try_from(*cache.offset((
-                    (y - self.y) * self.sx * self.sz +
-                    (z - self.z) * self.sx +
-                    (x - self.x)
-                ) as isize));
-                match b {
-                    Ok(b) => Ok(b),
-                    Err(_) => Err(()),
-                }
+        unsafe {
+            let b = self.cache.unwrap().offset((
+                (y - self.y) * self.sx * self.sz +
+                (z - self.z) * self.sx +
+                (x - self.x)
+            ) as isize);
+            let b = Biome::try_from(*b).ok();
+            match b {
+                Some(b) => Ok(b),
+                None => Err(()),
             }
-        } else {
-            Err(())
         }
     }
 
@@ -120,4 +144,12 @@ impl Range {
             sy: self.sy,
         }
     }
+}
+
+pub fn init_biome_colors() -> [[u8; 3]; 256] {
+    let mut v = [[0u8; 3]; 256];
+    unsafe {
+        initBiomeColors(v.as_mut_ptr());
+    }
+    v
 }
