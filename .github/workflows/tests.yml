@@ -19,7 +19,7 @@ jobs:
     - name: 'Install system dependencies'
       run: |
           sudo apt update
-          sudo apt install -y libglib2.0-dev libgtk-4-dev
+          sudo apt install -y pkg-config libglib2.0-dev libgtk-4-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
