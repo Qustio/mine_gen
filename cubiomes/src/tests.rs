@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use super::*;
 
 #[test]
@@ -40,24 +38,21 @@ fn test_range() {
         1,
         120,
     );
-    let c = g.alloc_cache(&mut range);
-    g.gen_biomes(&mut range, c).unwrap();
-    unsafe {
-        // let c = range.cache.unwrap();
-        // let cc = c.offset(100 as isize);
-        // println!("cc: {}", *cc);
-        cubiomes_sys::free(c as *mut std::os::raw::c_void);
-    }
-    
-    // let biome = range.get_biome_at(120, 256,0).unwrap();
-    // println!("biome:{:?}", biome);
+    g.alloc_cache(&mut range);
+    range.x = 1;
+    range.z = 1;
+    range.sx = 1;
+    range.sz = 1;
+    g.gen_biomes(&mut range).unwrap();    
+    let biome = range.get_biome_at(1, 256,1).unwrap();
+    assert_eq!(biome, Biome::TallBirchForest);
 }
 
-
+#[test]
 fn test_save() {
-    let mut g = RefCell::new(Generator::new(MCVersion::MC_1_21_WD));
-    g.borrow_mut().set_seed(Dimension::Overworld, 728201557363502228);
-    let mut range = RefCell::new(Range::new(
+    let mut g = Generator::new(MCVersion::MC_1_21_WD);
+    g.set_seed(Dimension::Overworld, 728201557363502228);
+    let mut range = Range::new(
         1,
         -512,
         64,
@@ -65,22 +60,10 @@ fn test_save() {
         1024,
         1,
         1024,
-    ));
-    g.borrow_mut().alloc_cache(&mut range.borrow_mut());
-    //g.borrow_mut().gen_biomes(&mut range.borrow_mut()).unwrap();
+    );
+    g.alloc_cache(&mut range);
+    g.gen_biomes(&mut range).unwrap();
     let mut colors = init_biome_colors();
-    let image = range.borrow_mut().biomes_to_image(&mut colors);
+    let image = range.biomes_to_image(&mut colors);
     assert!(image.is_ok());
-    // let handle = std::thread::spawn(move || {
-    //     g.borrow_mut().alloc_cache(&mut range.borrow_mut());
-    //     g.borrow_mut().alloc_cache(&mut range.borrow_mut());
-    //     g.borrow_mut().gen_biomes(&mut range.borrow_mut()).unwrap();
-    //     let mut colors = init_biome_colors();
-    //     let image = range.borrow_mut().biomes_to_image(&mut colors);
-    //     assert!(image.is_ok());
-    //     println!("123")
-    // });
-    // handle.join();
-    
-    
 }

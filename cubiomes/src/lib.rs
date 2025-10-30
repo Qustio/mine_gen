@@ -1,3 +1,5 @@
+#![doc(html_no_source)]
+
 mod enums;
 mod generator;
 
