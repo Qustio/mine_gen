@@ -17,6 +17,6 @@ jobs:
       with:
           submodules: true
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --lib
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --verbose --lib
