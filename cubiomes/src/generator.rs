@@ -2,7 +2,7 @@
 
 use super::*;
 use cubiomes_sys::{
-    allocCache, applySeed, biomesToImage, genBiomes, getBiomeAt, getMinCacheSize, initBiomeColors,
+    applySeed, biomesToImage, genBiomes, getBiomeAt, getMinCacheSize, initBiomeColors,
     setupGenerator,
 };
 use std::{
@@ -71,7 +71,6 @@ impl Generator {
     pub fn alloc_cache(&self, range: &mut Range) {
         unsafe {
             let size = getMinCacheSize(self.generator, range.scale, range.sx, range.sy, range.sz);
-            allocCache(self.generator, range.get_range());
             range.cache = vec![0_i32; size]
         }
     }
