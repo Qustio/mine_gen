@@ -6,20 +6,40 @@ mod window;
 use self::application::CubiomesgtkApplication;
 use self::window::CubiomesgtkWindow;
 
-use config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR};
+use config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PORTABLE};
 use gettextrs::{bind_textdomain_codeset, bindtextdomain, textdomain};
 use gtk::{gio, glib};
 use gtk::prelude::*;
+use std::path::PathBuf;
 
 fn main() -> glib::ExitCode {
+    let bin = std::env::current_exe().unwrap();
+    let gettext_package = if PORTABLE {
+        bin.parent().unwrap().parent().unwrap().join(GETTEXT_PACKAGE)
+    } else {
+        PathBuf::from(GETTEXT_PACKAGE)
+    };
+    let localedir = if PORTABLE {
+        bin.parent().unwrap().parent().unwrap().join(LOCALEDIR)
+    } else {
+        PathBuf::from(LOCALEDIR)
+    };
+    let pkgdatadir = if PORTABLE {
+        bin.parent().unwrap().parent().unwrap().join(PKGDATADIR)
+    } else {
+        PathBuf::from(PKGDATADIR)
+    };
+    glib::g_warning!("cubiomes-gtk", "GETTEXT_PACKAGE: {gettext_package:?}");
+    glib::g_warning!("cubiomes-gtk", "LOCALEDIR: {localedir:?}");
+    glib::g_warning!("cubiomes-gtk", "PKGDATADIR: {pkgdatadir:?}");
     // Set up gettext translations
-    bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).expect("Unable to bind the text domain");
-    bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8")
+    bindtextdomain(gettext_package.to_str().unwrap(), localedir).expect("Unable to bind the text domain");
+    bind_textdomain_codeset(gettext_package.to_str().unwrap(), "UTF-8")
         .expect("Unable to set the text domain encoding");
-    textdomain(GETTEXT_PACKAGE).expect("Unable to switch to the text domain");
+    textdomain(gettext_package.to_str().unwrap()).expect("Unable to switch to the text domain");
 
     // Load resources
-    let resources = gio::Resource::load(PKGDATADIR.to_owned() + "/cubiomesgtk.gresource")
+    let resources = gio::Resource::load(pkgdatadir.join("cubiomesgtk.gresource"))
         .expect("Could not load resources");
     gio::resources_register(&resources);
 

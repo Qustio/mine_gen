@@ -1,4 +1,10 @@
-pkgdatadir = get_option('prefix') / get_option('datadir') / meson.project_name()
+prefix = get_option('prefix')
+
+if get_option('portable')
+  prefix = ''
+endif
+
+pkgdatadir = prefix / get_option('datadir') / meson.project_name()
 gnome = import('gnome')
 
 gnome.compile_resources('cubiomesgtk',
@@ -11,8 +17,9 @@ gnome.compile_resources('cubiomesgtk',
 conf = configuration_data()
 conf.set_quoted('VERSION', meson.project_version())
 conf.set_quoted('GETTEXT_PACKAGE', 'cubiomesgtk')
-conf.set_quoted('LOCALEDIR', get_option('prefix') / get_option('localedir'))
+conf.set_quoted('LOCALEDIR', prefix / get_option('localedir'))
 conf.set_quoted('PKGDATADIR', pkgdatadir)
+conf.set('PORTABLE', get_option('portable').to_string().to_lower())
 
 configure_file(
     input: 'config.rs.in',
