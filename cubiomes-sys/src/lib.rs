@@ -22,12 +22,7 @@ mod test {
     use super::*;
     use rstest::*;
 
-    //#[rstest]
-    fn test_internal() {
-        unsafe {
-            let _ = testGeneration();
-        }
-    }
+
     #[rstest]
     #[case(2773094466218948097, -80, 70, 500, true, BiomeID::cherry_grove)]
 	#[case(3663763793056879556, 10694, 70, 7993, false, BiomeID::lush_caves)]

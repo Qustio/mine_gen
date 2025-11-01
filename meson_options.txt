@@ -1,6 +1,0 @@
-option(
-    'portable',
-    type: 'boolean',
-    value: false,
-    description: 'Don`t use prefix and make portable build'
-)
