@@ -10,7 +10,7 @@ pub struct CubiomesgtkWindow {
     // Template widgets
     #[template_child]
     pub boxx: TemplateChild<gtk::Box>,
-    pub texture: RefCell<Option<gdk::Texture>>,
+    pub texture: RefCell<Option<gdk::MemoryTexture>>,
     pub gen: RefCell<Option<cubiomes::Generator>>,
     pub range: RefCell<Option<cubiomes::Range>>,
 }
@@ -59,10 +59,10 @@ impl ObjectImpl for CubiomesgtkWindow {
                 let mul = 1024.0/16.0/500.0;
                 let dx = ((*save_x).get()-x)*mul;
                 let dy = ((*save_y).get()-y)*mul;
-                imp.range.borrow_mut().as_mut().map(|r| {
-                    r.x += dx as i32;
-                    r.z += dy as i32; 
-                });
+				if let Some(range) = imp.range.borrow_mut().as_mut() {
+					range.x += dx as i32;
+                    range.z += dy as i32; 
+				}
                 save_x.set(x + (dx%1.0)/mul);
                 save_y.set(y + (dy%1.0)/mul);
                 imp.gen();
@@ -104,14 +104,18 @@ impl AdwApplicationWindowImpl for CubiomesgtkWindow {}
 impl CubiomesgtkWindow {
     #[template_callback]
     fn add_one(&self, _: &gtk::Button) {
-        self.range.borrow_mut().as_mut().map(|r|r.x += 50);
+		if let Some(range) = self.range.borrow_mut().as_mut() {
+			range.x += 50
+		}
         self.gen();
         self.obj().queue_draw();
     }
 
     #[template_callback]
     fn remove_one(&self, _: &gtk::Button) {
-        self.range.borrow_mut().as_mut().map(|r|r.x -= 50);
+        if let Some(range) = self.range.borrow_mut().as_mut() {
+			range.x -= 50
+		}
         self.gen();
         self.obj().queue_draw();
     }
@@ -122,16 +126,13 @@ impl CubiomesgtkWindow {
             let mut colors = init_biome_colors();
             let image = range.biomes_to_image(&mut colors).unwrap();
             let bytes = glib::Bytes::from_owned(image);
-            let pb = gdk::gdk_pixbuf::Pixbuf::from_bytes(
-                &bytes,
-                gtk::gdk_pixbuf::Colorspace::Rgb,
-                false,
-                8,
-                range.sz,
-                range.sx,
-                range.sz * 3
-            );
-            let texture = gdk::Texture::for_pixbuf(&pb);
+			let texture = gdk::MemoryTexture::new(
+				range.sz,
+				range.sx,
+				gdk::MemoryFormat::R8g8b8,
+				&bytes,
+				(range.sz * 3) as usize
+			);
             self.texture.set(Some(texture));
         }
         
