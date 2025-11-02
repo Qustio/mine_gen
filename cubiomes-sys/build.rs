@@ -38,7 +38,6 @@ fn main() {
             ])
             .allowlist_file("./cubiomes/.*")
             .allowlist_file("cubiomes/tests.c")
-            .allowlist_file(".*stdlib.h")
             .translate_enum_integer_types(true)
             .default_enum_style(bindgen::EnumVariation::Rust { non_exhaustive: true })
             .allowlist_recursively(true)

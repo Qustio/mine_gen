@@ -1,0 +1,33 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "cubiomes-gtk",
+			"cargo": {
+				"args": [
+					"build",
+					"-p",
+					"cubiomes-gtk"
+				]
+			},
+			"args": []
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "cubiomes",
+			"cargo": {
+				"args": [
+					"test",
+					"-p",
+					"cubiomes",
+					"--no-run",
+					"--lib"
+				]
+			},
+			"args": []
+		},
+	]
+}

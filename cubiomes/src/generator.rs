@@ -2,12 +2,11 @@
 
 use super::*;
 use cubiomes_sys::{
-    allocCache, applySeed, biomesToImage, genBiomes, getBiomeAt, getMinCacheSize, initBiomeColors,
+    applySeed, biomesToImage, genBiomes, getBiomeAt, getMinCacheSize, initBiomeColors,
     setupGenerator,
 };
 use std::{
-    alloc::Layout,
-    alloc::{alloc_zeroed, dealloc},
+    alloc::{Layout, alloc_zeroed, dealloc}, fs::File, io::BufWriter, path::Path
 };
 
 /// Generator struct that hold all noise layers required for biome generation
@@ -71,7 +70,6 @@ impl Generator {
     pub fn alloc_cache(&self, range: &mut Range) {
         unsafe {
             let size = getMinCacheSize(self.generator, range.scale, range.sx, range.sy, range.sz);
-            allocCache(self.generator, range.get_range());
             range.cache = vec![0_i32; size]
         }
     }
@@ -177,6 +175,31 @@ impl Range {
         match b {
             Some(b) => Ok(b),
             None => Err(()),
+        }
+    }
+
+    /// Saves biomes in cache to png image
+    pub fn save_image<P: AsRef<Path>>(
+        &self,
+        path: P,
+        data: Vec<u8>
+    ) -> Result<File, ()> {
+        let path = Path::new(path.as_ref());
+        let file = File::create(path).unwrap();
+        let w = BufWriter::new(&file);
+        let mut encoder = png::Encoder::new(
+            w,
+            self.sx as u32,
+            self.sz as u32
+        );
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().unwrap();
+        writer.write_image_data(&data).unwrap();
+        let r = writer.finish();
+        match r {
+            Ok(_) => Ok(file),
+            Err(_) => Err(()),
         }
     }
 

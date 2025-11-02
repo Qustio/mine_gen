@@ -1,3 +1,5 @@
+use std::{env, path::PathBuf};
+
 use super::*;
 
 #[test]
@@ -66,4 +68,8 @@ fn test_save() {
     let mut colors = init_biome_colors();
     let image = range.biomes_to_image(&mut colors);
     assert!(image.is_ok());
+    let path = PathBuf::from("./img.png");
+    let image = range.save_image(&path, image.unwrap());
+    assert!(image.is_ok());
+    image.map(|_| std::fs::remove_file(&path).unwrap()).unwrap();
 }

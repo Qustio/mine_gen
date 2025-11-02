@@ -22,18 +22,7 @@
                     <signal name="clicked" handler="remove_one" swapped="true"/>
                   </object>
                 </child>
-                <child>
-                  <object class="GtkScale">
-                  <property name="width-request">100</property>
-                    <property name="orientation">0</property>
-                    <property name="adjustment">
-                      <object class="GtkAdjustment">r
-                        <property name="lower">0</property>
-                        <property name="upper">52</property>
-                      </object>
-                    </property>
-                  </object>
-                </child>
+                
               </object>
             </child>
             <child type="end">

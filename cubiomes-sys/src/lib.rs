@@ -22,12 +22,7 @@ mod test {
     use super::*;
     use rstest::*;
 
-    //#[rstest]
-    fn test_internal() {
-        unsafe {
-            let _ = testGeneration();
-        }
-    }
+
     #[rstest]
     #[case(2773094466218948097, -80, 70, 500, true, BiomeID::cherry_grove)]
 	#[case(3663763793056879556, 10694, 70, 7993, false, BiomeID::lush_caves)]
@@ -50,29 +45,6 @@ mod test {
             applySeed(g.as_mut_ptr(), Dimension::DIM_OVERWORLD as i32, seed);
             let res = BiomeID::try_from(getBiomeAt(g.as_ptr(), scale, x, y, z));
             assert_eq!(res, Ok(biome))
-        }
-    }
-
-    #[test]
-    fn test_range() {
-        unsafe {
-            let mut g = std::mem::MaybeUninit::<Generator>::zeroed();
-            setupGenerator(g.as_mut_ptr(), MCVersion::MC_1_21_WD as i32, LARGE_BIOMES as u32);
-            applySeed(g.as_mut_ptr(), Dimension::DIM_OVERWORLD as i32, 3663763793056879556);
-            let range = Range {
-                scale: 16,
-                x: -60,
-                z: -60,
-                sx: 120,
-                sz: 120,
-                y: 256,
-                sy: 1,
-            };
-            let biomeid = allocCache(g.as_ptr(), range);
-            genBiomes(g.as_ptr(), biomeid, range);
-            let res = BiomeID::try_from(getBiomeAt(g.as_ptr(), 1, -80, 70, 500,));
-            //assert_eq!(res, Ok(BiomeID::cherry_grove))
-            free(biomeid as *mut c_void);
         }
     }
 }
