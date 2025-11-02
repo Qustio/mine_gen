@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=cubiomesgtk
-Exec=cubiomesgtk
+Name=cubiomes-gtk
+Exec=cubiomes-gtk
 Icon=com.qustio.cubiomesgtk
 Terminal=false
 Type=Application
