@@ -4,7 +4,7 @@ edition = "2021"
 
 [dependencies]
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
-gtk = { version = "0.10", package = "gtk4", features = ["gnome_49"] }
+gtk = { version = "0.10", package = "gtk4", features = ["gnome_49", "blueprint"] }
 adw = { version = "0.8", package = "libadwaita", features = ["v1_8"]}
 cubiomes = { path = "../cubiomes" }
 

@@ -5,7 +5,7 @@ use gtk::glib::property::{PropertySet};
 use super::*;
 
 #[derive(Debug, Default, gtk::CompositeTemplate)]
-#[template(resource = "/com/qustio/cubiomesgtk/window/window.ui")]
+#[template(file = "src/window/window.blp")]
 pub struct CubiomesgtkWindow {
     // Template widgets
     #[template_child]
@@ -13,6 +13,8 @@ pub struct CubiomesgtkWindow {
     pub texture: RefCell<Option<gdk::MemoryTexture>>,
     pub gen: RefCell<Option<cubiomes::Generator>>,
     pub range: RefCell<Option<cubiomes::Range>>,
+	
+	
 }
 
 #[glib::object_subclass]

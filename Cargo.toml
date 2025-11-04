@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["cubiomes","cubiomes-sys", "cubiomes-gtk"]
+members = ["cubiomes","cubiomes-sys","cubiomes-gtk"]
 
 [workspace.dependencies]
 fastnoise-lite = "1.1.1"

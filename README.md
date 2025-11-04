@@ -14,6 +14,7 @@ This repository contains:
 - [ ] Fix of map moving only per pixel by changing generation width and height values
 - [ ] Make generation work faster by multithreading it
 - [ ] Sync meson project version and authors with provided by cubiomes-gtkl/Cargo.toml. Something like this [Pika Backup](https://gitlab.gnome.org/World/pika-backup/-/blob/main/meson.build?ref_type=heads) does
+- [ ] Use gtk
 - [ ] Fix flatpak build
 - [ ] Remove yarn and add script to copy sources of minecraft since minecraft build is not using obfuscation anymore
 - [ ] Reimplement cubiomes into own generator layer by layer
