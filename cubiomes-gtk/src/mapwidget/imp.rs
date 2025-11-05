@@ -1,20 +1,53 @@
-use std::{cell::{Cell, RefCell}, rc::Rc};
+use std::{cell::RefCell};
 
-use gtk::glib::property::{PropertySet};
+use gtk::glib::property::PropertySet;
 
 use super::*;
 
-#[derive(Debug, Default, gtk::CompositeTemplate)]
-#[template(resource = "/com/qustio/cubiomesgtk/mapwidget.ui")]
+#[derive(Debug, gtk::CompositeTemplate, glib::Properties)]
+#[properties(wrapper_type = super::MapWidget)]
+#[template(file = "src/ui/mapwidget.blp")]
 pub struct MapWidget {
-    pub texture: RefCell<Option<gdk::Texture>>,
+    pub texture: RefCell<Option<gdk::MemoryTexture>>,
     pub generator: RefCell<Option<cubiomes::Generator>>,
     pub range: RefCell<Option<cubiomes::Range>>,
+    #[property(get, set)]
+    pub x: RefCell<f64>,
+    #[property(get, set)]
+    pub y: RefCell<f64>,
+    #[property(get, set)]
+    pub scale: RefCell<f64>,
+    #[property(get, set)]
+    pub regenerate: RefCell<bool>,
+    #[property(get, set)]
+    pub resize: RefCell<bool>,
+    #[property(get, set)]
+    pub ready: RefCell<bool>,
+    pub dif_x: RefCell<f64>,
+    pub dif_y: RefCell<f64>,
+}
+
+impl Default for MapWidget {
+    fn default() -> Self {
+        Self {
+            texture: Default::default(),
+            generator: Default::default(),
+            range: Default::default(),
+            x: Default::default(),
+            y: Default::default(),
+            scale: RefCell::new(1.0),
+            regenerate: RefCell::new(false),
+            resize: RefCell::new(false),
+            ready: RefCell::new(false),
+            dif_x: Default::default(),
+            dif_y: Default::default() 
+        }
+    }
 }
 
 #[glib::object_subclass]
 impl ObjectSubclass for MapWidget {
-    const NAME: &'static str = "CubiomesgtkWindow";
+    const NAME: &'static str = "MapWidget";
     type Type = super::MapWidget;
     type ParentType = gtk::Widget;
 
@@ -28,9 +61,12 @@ impl ObjectSubclass for MapWidget {
     }
 }
 
+#[glib::derived_properties]
 impl ObjectImpl for MapWidget {
     fn constructed(&self) {
+        Self::derived_properties();
         self.parent_constructed();
+        let obj = self.obj();
         let mut g = Generator::new(MCVersion::MC_1_21_WD);
         glib::g_warning!("gen", "Generator::new done");
         g.set_seed(Dimension::Overworld, 728201557363502228);
@@ -45,69 +81,130 @@ impl ObjectImpl for MapWidget {
             1024/16,
         );
         let d = gtk::GestureDrag::new();
-        let save_x = Rc::new(Cell::new(0.0));
-        let save_y = Rc::new(Cell::new(0.0));
         d.connect_drag_update(glib::clone!(
             #[weak(rename_to = imp)]
             self,
-            #[weak] save_x,
-            #[weak] save_y,                
             move |_, x, y| {
-                let mul = 1024.0/16.0/500.0;
-                let dx = ((*save_x).get()-x)*mul;
-                let dy = ((*save_y).get()-y)*mul;
-                imp.range.borrow_mut().as_mut().map(|r| {
-                    r.x += dx as i32;
-                    r.z += dy as i32; 
-                });
-                save_x.set(x + (dx%1.0)/mul);
-                save_y.set(y + (dy%1.0)/mul);
-                imp.gen();
-                imp.obj().queue_draw();
+                let old_x = imp.x.take();
+                let old_y = imp.y.take();
+                let dx = x - imp.dif_x.take();
+                let dy = y - imp.dif_y.take();
+                imp.obj().set_x(old_x - dx);
+                imp.obj().set_y(old_y - dy);
+
+                imp.dif_x.set(x);
+                imp.dif_y.set(y);
             }
         ));
         d.connect_drag_end(glib::clone!(
-            move |_, x, y| {
-                glib::g_warning!("gen", "enddrag {} {}", x, y);
-                save_x.set(0.0);
-                save_y.set(0.0);
+            #[weak(rename_to = imp)]
+            self,
+            move |_, _, _| {
+                imp.dif_x.set(0.0);
+                imp.dif_y.set(0.0);
             }
         ));
+        let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::BOTH_AXES);
+        scroll.connect_scroll(glib::clone!(
+            #[weak_allow_none(rename_to = imp)]
+            self,
+            move |_, x, y| {
+                if let Some(imp) = imp {
+                    match y {
+                        1.0 | 9.0 => imp.obj().set_scale(imp.scale.take()*2.0),
+                        -1.0 | -9.0 => imp.obj().set_scale(imp.scale.take()/2.0),
+                        _ => ()
+                    }
+                }
+                glib::Propagation::Proceed
+            }
+        ));
+        obj.add_controller(scroll);
         
         g.set_seed(Dimension::Overworld, 728201557363502228);
         g.alloc_cache(&mut range);
         self.generator.set(Some(g));
         self.range.set(Some(range));
-        self.generate_map();
-        self.obj().add_controller(d);
+        glib::idle_add_local(glib::clone!(
+            #[weak_allow_none(rename_to = imp)]
+            self,
+            move || {
+                if let Some(imp) = imp {
+                    if imp.regenerate.take() {
+                        println!("go");
+                        imp.calc_cord();
+                        if imp.resize.take() {
+                            println!("ggg");
+                            imp.realloc();
+                        }
+                        imp.generate_map();
+                        imp.obj().queue_draw();
+                    }   
+                }
+                glib::ControlFlow::Continue
+            }
+        ));
+        obj.connect_x_notify(|w| {
+            w.set_regenerate(true);
+        });
+        obj.connect_y_notify(|w| {
+            w.set_regenerate(true);
+        });
+        obj.connect_scale_notify(|w| {
+            w.set_regenerate(true);
+            w.set_resize(true);
+        });
+        obj.connect_realize(|w| {
+            w.set_regenerate(true);
+            w.set_resize(true);
+        });
+        obj.add_controller(d);
     }
 }
 impl WidgetImpl for MapWidget {
     fn snapshot(&self, snapshot: &gtk::Snapshot) {
-        self.parent_snapshot(snapshot);
         if let Some(texture) = self.texture.borrow().as_ref() {
             snapshot.append_scaled_texture(
                 texture,
                 gtk::gsk::ScalingFilter::Nearest,
-                &gtk::graphene::Rect::new(200.0, 200.0, 500.0, 500.0)
+                &gtk::graphene::Rect::new(
+                    0.0,
+                    0.0,
+                    self.obj().width() as f32,
+                    self.obj().height() as f32
+                )
             );
         }
+        self.parent_snapshot(snapshot);
     }
 }
 #[gtk::template_callbacks]
+impl MapWidget {}
+
 impl MapWidget {
-    #[template_callback]
-    fn add_one(&self, _: &gtk::Button) {
-        self.range.borrow_mut().as_mut().map(|r|r.x += 50);
-        self.generate_map();
-        self.obj().queue_draw();
+    fn calc_cord(&self) {
+        if let Some(range) = self.range.borrow_mut().as_mut() {
+            let width = self.obj().width();
+            let height = self.obj().height();
+            let x = self.x.take();
+            let y = self.y.take();
+            let scale = self.scale.take();
+            self.x.set(x);
+            self.y.set(y);
+            self.scale.set(scale);
+            let block_x = x/16.0 * scale;
+            let block_y = y/16.0 * scale;
+            range.x = block_x as i32 - (width as f64 / 2.0 / 16.0 * scale) as i32;
+            range.z = block_y as i32 - (height as f64 / 2.0 / 16.0 * scale) as i32;
+            range.sx = (width as f64 / 16.0 * scale) as i32;
+            range.sz = (height as f64 / 16.0 * scale) as i32;
+        }
     }
 
-    #[template_callback]
-    fn remove_one(&self, _: &gtk::Button) {
-        self.range.borrow_mut().as_mut().map(|r|r.x -= 50);
-        self.generate_map();
-        self.obj().queue_draw();
+    fn realloc(&self) {
+        if let (Some(g), Some(range)) = (self.generator.borrow_mut().as_mut(), self.range.borrow_mut().as_mut()) {
+            g.alloc_cache(range);
+        }
     }
 
     fn generate_map(&self) {
@@ -115,19 +212,16 @@ impl MapWidget {
             g.gen_biomes(range).unwrap();
             let mut colors = init_biome_colors();
             let image = range.biomes_to_image(&mut colors).unwrap();
-            let bytes = glib::Bytes::from_owned(image);
-            let pb = gdk::gdk_pixbuf::Pixbuf::from_bytes(
-                &bytes,
-                gtk::gdk_pixbuf::Colorspace::Rgb,
-                false,
-                8,
-                range.sz,
+            let bytes = glib::Bytes::from(&image);
+            let texture = gdk::MemoryTexture::new(
                 range.sx,
-                range.sz * 3
+                range.sz,
+                gdk::MemoryFormat::R8g8b8,
+                &bytes,
+                range.sx as usize * 3
             );
-            let texture = gdk::Texture::for_pixbuf(&pb);
+            //texture
             self.texture.set(Some(texture));
         }
-        
     }
 }

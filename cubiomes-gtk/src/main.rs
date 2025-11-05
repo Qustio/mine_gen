@@ -1,5 +1,6 @@
 mod application;
 mod config;
+mod mapwidget;
 mod window;
 
 use self::application::CubiomesgtkApplication;

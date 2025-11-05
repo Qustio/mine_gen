@@ -12,11 +12,11 @@ template $CubiomesgtkWindow: Adw.ApplicationWindow {
       [start]
       Box {
         Button clicked1 {
-          clicked => $add_one() swapped;
+          //clicked => $add_one() swapped;
         }
 
         Button clicked2 {
-          clicked => $remove_one() swapped;
+          //clicked => $remove_one() swapped;
         }
       }
 
@@ -29,7 +29,8 @@ template $CubiomesgtkWindow: Adw.ApplicationWindow {
       }
     }
 
-    content: Box boxx {};
+    content: $MapWidget map{
+    };
   };
 }
 
