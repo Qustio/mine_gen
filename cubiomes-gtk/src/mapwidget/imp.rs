@@ -154,14 +154,15 @@ impl ObjectImpl for MapWidget {
             w.set_regenerate(true);
             w.set_resize(true);
         });
-        obj.connect_realize(|w| {
-            w.set_regenerate(true);
-            w.set_resize(true);
-        });
         obj.add_controller(d);
     }
 }
 impl WidgetImpl for MapWidget {
+    fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
+        self.parent_size_allocate(width, height, baseline);
+        self.obj().set_regenerate(true);
+        self.obj().set_resize(true);
+    }
     fn snapshot(&self, snapshot: &gtk::Snapshot) {
         if let Some(texture) = self.texture.borrow().as_ref() {
             snapshot.append_scaled_texture(
@@ -198,6 +199,7 @@ impl MapWidget {
             range.z = block_y as i32 - (height as f64 / 2.0 / 16.0 * scale) as i32;
             range.sx = (width as f64 / 16.0 * scale) as i32;
             range.sz = (height as f64 / 16.0 * scale) as i32;
+            println!("width {}", width);
         }
     }
 
@@ -220,7 +222,6 @@ impl MapWidget {
                 &bytes,
                 range.sx as usize * 3
             );
-            //texture
             self.texture.set(Some(texture));
         }
     }
