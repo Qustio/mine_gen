@@ -85,7 +85,7 @@ impl Generator {
         unsafe {
             let size = getMinCacheSize(self.generator, range.scale, range.sx, range.sy, range.sz);
             if range.cache.len() < size {
-                panic!("Invalid cache");
+                panic!("Not enough cache");
             }
             match genBiomes(
                 self.generator,
@@ -129,7 +129,7 @@ pub struct Range {
     pub sy: i32,
     /// Scale of z axis
     pub sz: i32,
-    cache: Vec<i32>,
+    pub(crate) cache: Vec<i32>,
 }
 
 impl Range {
