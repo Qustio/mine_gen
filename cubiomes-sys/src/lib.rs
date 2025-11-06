@@ -17,8 +17,6 @@ impl TryFrom<i32> for BiomeID {
 
 #[cfg(test)]
 mod test {
-    use std::os::raw::c_void;
-
     use super::*;
     use rstest::*;
 
