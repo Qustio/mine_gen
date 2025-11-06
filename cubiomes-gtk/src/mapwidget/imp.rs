@@ -1,6 +1,6 @@
-use std::{cell::RefCell};
+use std::{cell::RefCell, sync::{Arc, Mutex, mpsc}};
 
-use gtk::glib::property::PropertySet;
+use gtk::glib::{ThreadHandle, property::PropertySet};
 
 use super::*;
 
@@ -8,9 +8,9 @@ use super::*;
 #[properties(wrapper_type = super::MapWidget)]
 #[template(file = "src/ui/mapwidget.blp")]
 pub struct MapWidget {
-    pub texture: RefCell<Option<gdk::MemoryTexture>>,
-    pub generator: RefCell<Option<cubiomes::Generator>>,
-    pub range: RefCell<Option<cubiomes::Range>>,
+    pub texture: Arc<Mutex<Option<gdk::MemoryTexture>>>,
+    pub generator: Arc<Mutex<Option<cubiomes::Generator>>>,
+    pub range: Arc<Mutex<Option<cubiomes::Range>>>,
     #[property(get, set)]
     pub x: RefCell<f64>,
     #[property(get, set)]
@@ -25,10 +25,12 @@ pub struct MapWidget {
     pub ready: RefCell<bool>,
     pub dif_x: RefCell<f64>,
     pub dif_y: RefCell<f64>,
+    pub thread_pool: glib::ThreadPool,
 }
 
 impl Default for MapWidget {
     fn default() -> Self {
+        let thread_pool = glib::ThreadPool::exclusive(glib::num_processors()).unwrap();
         Self {
             texture: Default::default(),
             generator: Default::default(),
@@ -40,7 +42,8 @@ impl Default for MapWidget {
             resize: RefCell::new(false),
             ready: RefCell::new(false),
             dif_x: Default::default(),
-            dif_y: Default::default() 
+            dif_y: Default::default(),
+            thread_pool
         }
     }
 }
@@ -64,21 +67,24 @@ impl ObjectSubclass for MapWidget {
 #[glib::derived_properties]
 impl ObjectImpl for MapWidget {
     fn constructed(&self) {
-        Self::derived_properties();
         self.parent_constructed();
+
+        
+        
+
         let obj = self.obj();
         let mut g = Generator::new(MCVersion::MC_1_21_WD);
         glib::g_warning!("gen", "Generator::new done");
         g.set_seed(Dimension::Overworld, 728201557363502228);
         glib::g_warning!("gen", "Generator::set_seed done");
         let mut range = cubiomes::Range::new(
-            16,
-            -512/16,
+            4,
+            -512/4,
             256,
-            -512/16,
-            1024/16,
+            -512/4,
+            1024/4,
             1,
-            1024/16,
+            1024/4,
         );
         let d = gtk::GestureDrag::new();
         d.connect_drag_update(glib::clone!(
@@ -120,7 +126,6 @@ impl ObjectImpl for MapWidget {
             }
         ));
         obj.add_controller(scroll);
-        
         g.set_seed(Dimension::Overworld, 728201557363502228);
         g.alloc_cache(&mut range);
         self.generator.set(Some(g));
@@ -131,17 +136,17 @@ impl ObjectImpl for MapWidget {
             move || {
                 if let Some(imp) = imp {
                     if imp.regenerate.take() {
-                        println!("go");
                         imp.calc_cord();
                         if imp.resize.take() {
-                            println!("ggg");
                             imp.realloc();
                         }
                         imp.generate_map();
-                        imp.obj().queue_draw();
-                    }   
+                        //imp.obj().queue_draw();
+                    }
+                    glib::ControlFlow::Continue
+                } else {
+                    glib::ControlFlow::Break
                 }
-                glib::ControlFlow::Continue
             }
         ));
         obj.connect_x_notify(|w| {
@@ -164,17 +169,19 @@ impl WidgetImpl for MapWidget {
         self.obj().set_resize(true);
     }
     fn snapshot(&self, snapshot: &gtk::Snapshot) {
-        if let Some(texture) = self.texture.borrow().as_ref() {
-            snapshot.append_scaled_texture(
-                texture,
-                gtk::gsk::ScalingFilter::Nearest,
-                &gtk::graphene::Rect::new(
-                    0.0,
-                    0.0,
-                    self.obj().width() as f32,
-                    self.obj().height() as f32
-                )
-            );
+        if let Ok(lock) = self.texture.try_lock() {
+            if let Some(texture) = &*lock {
+                snapshot.append_scaled_texture(
+                    texture,
+                    gtk::gsk::ScalingFilter::Nearest,
+                    &gtk::graphene::Rect::new(
+                        0.0,
+                        0.0,
+                        self.obj().width() as f32,
+                        self.obj().height() as f32
+                    )
+                );
+            }
         }
         self.parent_snapshot(snapshot);
     }
@@ -184,45 +191,75 @@ impl MapWidget {}
 
 impl MapWidget {
     fn calc_cord(&self) {
-        if let Some(range) = self.range.borrow_mut().as_mut() {
-            let width = self.obj().width();
-            let height = self.obj().height();
-            let x = self.x.take();
-            let y = self.y.take();
-            let scale = self.scale.take();
-            self.x.set(x);
-            self.y.set(y);
-            self.scale.set(scale);
-            let block_x = x/16.0 * scale;
-            let block_y = y/16.0 * scale;
-            range.x = block_x as i32 - (width as f64 / 2.0 / 16.0 * scale) as i32;
-            range.z = block_y as i32 - (height as f64 / 2.0 / 16.0 * scale) as i32;
-            range.sx = (width as f64 / 16.0 * scale) as i32;
-            range.sz = (height as f64 / 16.0 * scale) as i32;
-            println!("width {}", width);
+        if let Ok(mut lock) = self.range.lock() {
+            if let Some(range) = lock.as_mut().as_deref_mut() {
+                let width = self.obj().width();
+                let height = self.obj().height();
+                let x = self.x.take();
+                let y = self.y.take();
+                let scale = self.scale.take();
+                self.x.set(x);
+                self.y.set(y);
+                self.scale.set(scale);
+                let block_x = x/4.0 * scale;
+                let block_y = y/4.0 * scale;
+                range.x = block_x as i32 - (width as f64 / 2.0 / 4.0 * scale) as i32;
+                range.z = block_y as i32 - (height as f64 / 2.0 / 4.0 * scale) as i32;
+                range.sx = (width as f64 / 4.0 * scale) as i32;
+                range.sz = (height as f64 / 4.0 * scale) as i32;
+                //range.sx = 256;
+                //range.sz = 256;
+            }
         }
     }
 
     fn realloc(&self) {
-        if let (Some(g), Some(range)) = (self.generator.borrow_mut().as_mut(), self.range.borrow_mut().as_mut()) {
-            g.alloc_cache(range);
+        if let (Ok(lock_g), Ok( mut lock_range)) = (self.generator.lock(), self.range.lock()) {
+            if let (Some(g), Some(range)) = (lock_g.as_ref().as_deref(), lock_range.as_mut().as_deref_mut()) {
+                g.alloc_cache(range);
+            }
         }
     }
 
     fn generate_map(&self) {
-        if let (Some(g), Some(range)) = (self.generator.borrow_mut().as_mut(), self.range.borrow_mut().as_mut()){
-            g.gen_biomes(range).unwrap();
-            let mut colors = init_biome_colors();
-            let image = range.biomes_to_image(&mut colors).unwrap();
-            let bytes = glib::Bytes::from(&image);
-            let texture = gdk::MemoryTexture::new(
-                range.sx,
-                range.sz,
-                gdk::MemoryFormat::R8g8b8,
-                &bytes,
-                range.sx as usize * 3
-            );
-            self.texture.set(Some(texture));
-        }
+        let generator = self.generator.clone();
+        let range = self.range.clone();
+        let texture = self.texture.clone();
+        let obj = self.obj().clone();
+
+        let (s, r) = mpsc::channel::<()>();
+        texture.set(None);
+        _ = self.thread_pool.push(move || {
+            if let (Ok(mut lock_g), Ok( mut lock_range)) = (generator.lock(), range.lock()) {
+                if let (Some(generator), Some(range)) = (lock_g.as_mut().as_deref_mut(), lock_range.as_mut().as_deref_mut()) {
+                    
+                    generator.gen_biomes(range).unwrap();
+                    let mut colors = init_biome_colors();
+                    let image = range.biomes_to_image(&mut colors).unwrap();
+                    let width = range.sx;
+                    let height = range.sz;
+                    glib::idle_add(move || {
+                        let bytes = glib::Bytes::from(&image);
+                        let new_texture = gdk::MemoryTexture::new(
+                            width,
+                            height,
+                            gdk::MemoryFormat::R8g8b8,
+                            &bytes,
+                            width as usize * 3
+                        );
+                        texture.set(Some(new_texture));
+                        s.send(());
+                        glib::ControlFlow::Break
+                    });
+                }
+            }
+        });
+        glib::idle_add_local(move || {
+            if let Ok(_) = r.try_recv() {
+                obj.queue_draw();
+                return glib::ControlFlow::Break;
+            }
+            glib::ControlFlow::Continue
+        });
     }
 }
