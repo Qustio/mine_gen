@@ -10,7 +10,7 @@ use std::{
 };
 
 /// Generator struct that hold all noise layers required for biome generation
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Generator {
     generator: *mut cubiomes_sys::Generator,
 }
@@ -25,6 +25,9 @@ impl Drop for Generator {
         }
     }
 }
+
+unsafe impl Send for Generator{}
+unsafe impl Sync for Generator{}
 
 impl Generator {
     /// Allocates new generator
@@ -66,6 +69,7 @@ impl Generator {
         unsafe { Biome::try_from(getBiomeAt(self.generator, scale, x, y, z)).unwrap() }
     }
 
+    
     /// Allocates vec for storing all biomes data of specified range
     pub fn alloc_cache(&self, range: &mut Range) {
         unsafe {
@@ -106,7 +110,7 @@ impl Generator {
 /// of `scale` blocks in the horizontal axes. The vertical direction is treated
 /// separately and always follows the biome coordinate scaling of 1:4, except
 /// for when `scale == 1`, in which case the vertical scaling is also 1:1.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Range {
     /// The only supported values for `scale` are 1, 4, 16, 64, and
     /// (for the Overworld) 256. For versions up to 1.17, the scale
