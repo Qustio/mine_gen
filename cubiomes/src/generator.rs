@@ -168,6 +168,10 @@ impl Range {
 
     /// Get biome at specified coordinates
     pub fn get_biome_at(&self, x: i32, y: i32, z: i32) -> Result<Biome, ()> {
+        let arr = ndarray::ArrayView3::from_shape(
+            (self.sx as usize, self.sy as usize, self.sz as usize), 
+            &self.cache
+        ).unwrap();
         let b = self
             .cache
             .get(
@@ -175,6 +179,7 @@ impl Range {
                     as usize,
             )
             .unwrap();
+        let bb = arr.get(((x - self.x) as usize, (y - self.y) as usize, (z - self.z) as usize)).unwrap().to_owned();
         let b = Biome::try_from(*b).ok();
         match b {
             Some(b) => Ok(b),
