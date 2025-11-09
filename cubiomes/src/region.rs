@@ -51,7 +51,8 @@ impl Region {
                 ])
                 .map(|b| Biome::try_from(*b).unwrap());
 
-            let g = s.as_slice()
+			println!("biomes: {:?}", s);
+            let s = s.as_slice()
                 .unwrap();
 
             
@@ -65,7 +66,7 @@ impl Region {
             }
             //println!("array length: {:?}", &s);
             // let biome = Biome::try_from(bb).unwrap();
-            // println!("biome: {:?}", biome);
+            
             //range.cache.as_chunks()
             // let b = self
             // .cache
@@ -89,17 +90,17 @@ mod test{
         g.set_seed(Dimension::Overworld, 728201557363502228);
         let mult = 4;
         let mut range = Range::new(
-            4,
+            64,
             -4/mult,
             256,
             -4/mult,
-            260/mult,
+            270/mult,
             1,
-            260/mult
+            270/mult
         );
         g.alloc_cache(&mut range);
         g.gen_biomes(&mut range).unwrap();
-        let region = Region::new(0, 0);
+        let mut region = Region::new(0, 0);
         region.fill_from_range(&range);
         let biome = range.get_biome_at(0, 256,0).unwrap();
         println!("Biome: {biome:?}")

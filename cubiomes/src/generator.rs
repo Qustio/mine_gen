@@ -225,6 +225,12 @@ impl Range {
     }
 }
 
+#[repr()]
+enum Scale{
+	1,
+	2,
+}
+
 /// Initialize biome colors with default values
 pub fn init_biome_colors() -> [[u8; 3]; 256] {
     let mut v = [[0u8; 3]; 256];
