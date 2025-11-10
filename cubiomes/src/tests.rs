@@ -32,7 +32,7 @@ fn test_range() {
     let mut g = Generator::new(MCVersion::MC_1_21_WD);
     g.set_seed(Dimension::Overworld, 728201557363502228);
     let mut range = Range::new(
-        256,
+        Scale::S256,
         -60,
         256,
         -60,
@@ -55,7 +55,7 @@ fn test_save() {
     let mut g = Generator::new(MCVersion::MC_1_21_WD);
     g.set_seed(Dimension::Overworld, 728201557363502228);
     let mut range = Range::new(
-        1,
+        Scale::S1,
         -512,
         64,
         -512,

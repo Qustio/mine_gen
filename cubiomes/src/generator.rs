@@ -73,7 +73,7 @@ impl Generator {
     /// Allocates vec for storing all biomes data of specified range
     pub fn alloc_cache(&self, range: &mut Range) {
         unsafe {
-            let size = getMinCacheSize(self.generator, range.scale, range.sx, range.sy, range.sz);
+            let size = getMinCacheSize(self.generator, range.scale.clone() as i32, range.sx, range.sy, range.sz);
             range.cache = vec![0_i32; size]
         }
     }
@@ -83,7 +83,7 @@ impl Generator {
     /// If range is missing cache  for biomes it panics
     pub fn gen_biomes(&self, range: &mut Range) -> Result<(), i32> {
         unsafe {
-            let size = getMinCacheSize(self.generator, range.scale, range.sx, range.sy, range.sz);
+            let size = getMinCacheSize(self.generator, range.scale.clone() as i32, range.sx, range.sy, range.sz);
             if range.cache.len() < size {
                 panic!("Not enough cache");
             }
@@ -116,7 +116,7 @@ pub struct Range {
     /// (for the Overworld) 256. For versions up to 1.17, the scale
     /// is matched to an appropriate biome layer and will influence
     /// the biomes that can generate.
-    pub scale: i32,
+    pub scale: Scale,
     /// Position of x coordinate
     pub x: i32,
     /// Position of y coordinate
@@ -134,7 +134,7 @@ pub struct Range {
 
 impl Range {
     /// Creates new range with specified parameters and empty cache
-    pub fn new(scale: i32, x: i32, y: i32, z: i32, sx: i32, sy: i32, sz: i32) -> Self {
+    pub fn new(scale: Scale, x: i32, y: i32, z: i32, sx: i32, sy: i32, sz: i32) -> Self {
         Self {
             scale,
             x,
@@ -214,7 +214,7 @@ impl Range {
 
     fn get_range(&self) -> cubiomes_sys::Range {
         cubiomes_sys::Range {
-            scale: self.scale,
+            scale: self.scale.clone() as i32,
             x: self.x,
             z: self.z,
             sx: self.sx,
@@ -225,10 +225,13 @@ impl Range {
     }
 }
 
-#[repr()]
-enum Scale{
-	1,
-	2,
+#[derive(Debug, Clone)]
+pub enum Scale{
+	S1 = 1,
+    S4 = 4,
+    S16 = 16,
+    S64 = 64,
+    S256 = 256,
 }
 
 /// Initialize biome colors with default values

@@ -9,6 +9,8 @@ pub struct Region {
     data16: Option<[Biome; 256]>,
     data4: Option<[Biome; 4096]>,
     data1: Option<[Biome; 65536]>,
+    img256: Option<[u8; 3]>,
+    pub img4: Option<[u8; 3*4096]>,
     x: i32,
     y: i32,
 }
@@ -21,14 +23,26 @@ impl Region {
             ..Default::default()
         }
     }
+    pub fn col(&mut self, colors: [[u8; 3]; 256])
+    {
+        if let Some(data4) = self.data4 {
+            let mut img4 = [0; 3*4096];
+            for (b, i) in data4.iter().zip(img4.chunks_exact_mut(3)) {
+                i.copy_from_slice(&colors[b.clone() as usize]);
+            }
+            self.img4 = Some(img4);
+        }
+    }
+
     pub fn fill_from_range(&mut self, range: &Range) {
         // check if a region in range bounds
         let region_x = 256 * self.x;
         let region_y = 256 * self.y;
-        let range_x = range.x * range.scale;
-        let range_y = range.z * range.scale;
-        let range_sx = range.sx * range.scale;
-        let range_sy = range.sz * range.scale;
+        let scale = range.scale.clone() as i32;
+        let range_x = range.x * scale;
+        let range_y = range.z * scale;
+        let range_sx = range.sx * scale;
+        let range_sy = range.sz * scale;
 
         if  region_x >= range_x &&
             region_y >= range_y &&
@@ -45,9 +59,9 @@ impl Region {
 
             let s = arr
                 .slice(s![(
-                    region_x/range.scale)-range.x..(region_x+256)/range.scale-range.x,
+                    region_x/scale)-range.x..(region_x+256)/scale-range.x,
                     0,
-                    region_y/range.scale-range.z..(region_y+256)/range.scale-range.z
+                    region_y/scale-range.z..(region_y+256)/scale-range.z
                 ])
                 .map(|b| Biome::try_from(*b).unwrap());
 
@@ -57,12 +71,11 @@ impl Region {
 
             
             match range.scale {
-                256 => self.data256 = Some(s[0]),
-                64 => self.data64 = Some(s.try_into().unwrap()),
-                16 => self.data16 = Some(s.try_into().unwrap()),
-                4 => self.data4 = Some(s.try_into().unwrap()),
-                1 => self.data1 = Some(s.try_into().unwrap()),
-                _ => unreachable!()
+                Scale::S256 => self.data256 = Some(s[0]),
+                Scale::S64 => self.data64 = Some(s.try_into().unwrap()),
+                Scale::S16 => self.data16 = Some(s.try_into().unwrap()),
+                Scale::S4 => self.data4 = Some(s.try_into().unwrap()),
+                Scale::S1 => self.data1 = Some(s.try_into().unwrap()),
             }
             //println!("array length: {:?}", &s);
             // let biome = Biome::try_from(bb).unwrap();
@@ -90,7 +103,7 @@ mod test{
         g.set_seed(Dimension::Overworld, 728201557363502228);
         let mult = 4;
         let mut range = Range::new(
-            64,
+            Scale::S64,
             -4/mult,
             256,
             -4/mult,
