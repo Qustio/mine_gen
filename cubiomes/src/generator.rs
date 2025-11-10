@@ -10,7 +10,7 @@ use std::{
 };
 
 /// Generator struct that hold all noise layers required for biome generation
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Generator {
     generator: *mut cubiomes_sys::Generator,
 }
@@ -25,6 +25,9 @@ impl Drop for Generator {
         }
     }
 }
+
+unsafe impl Send for Generator{}
+unsafe impl Sync for Generator{}
 
 impl Generator {
     /// Allocates new generator
@@ -66,10 +69,11 @@ impl Generator {
         unsafe { Biome::try_from(getBiomeAt(self.generator, scale, x, y, z)).unwrap() }
     }
 
+    
     /// Allocates vec for storing all biomes data of specified range
     pub fn alloc_cache(&self, range: &mut Range) {
         unsafe {
-            let size = getMinCacheSize(self.generator, range.scale, range.sx, range.sy, range.sz);
+            let size = getMinCacheSize(self.generator, range.scale.clone() as i32, range.sx, range.sy, range.sz);
             range.cache = vec![0_i32; size]
         }
     }
@@ -79,9 +83,9 @@ impl Generator {
     /// If range is missing cache  for biomes it panics
     pub fn gen_biomes(&self, range: &mut Range) -> Result<(), i32> {
         unsafe {
-            let size = getMinCacheSize(self.generator, range.scale, range.sx, range.sy, range.sz);
+            let size = getMinCacheSize(self.generator, range.scale.clone() as i32, range.sx, range.sy, range.sz);
             if range.cache.len() < size {
-                panic!("Invalid cache");
+                panic!("Not enough cache");
             }
             match genBiomes(
                 self.generator,
@@ -106,13 +110,13 @@ impl Generator {
 /// of `scale` blocks in the horizontal axes. The vertical direction is treated
 /// separately and always follows the biome coordinate scaling of 1:4, except
 /// for when `scale == 1`, in which case the vertical scaling is also 1:1.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Range {
     /// The only supported values for `scale` are 1, 4, 16, 64, and
     /// (for the Overworld) 256. For versions up to 1.17, the scale
     /// is matched to an appropriate biome layer and will influence
     /// the biomes that can generate.
-    pub scale: i32,
+    pub scale: Scale,
     /// Position of x coordinate
     pub x: i32,
     /// Position of y coordinate
@@ -125,12 +129,12 @@ pub struct Range {
     pub sy: i32,
     /// Scale of z axis
     pub sz: i32,
-    cache: Vec<i32>,
+    pub(crate) cache: Vec<i32>,
 }
 
 impl Range {
     /// Creates new range with specified parameters and empty cache
-    pub fn new(scale: i32, x: i32, y: i32, z: i32, sx: i32, sy: i32, sz: i32) -> Self {
+    pub fn new(scale: Scale, x: i32, y: i32, z: i32, sx: i32, sy: i32, sz: i32) -> Self {
         Self {
             scale,
             x,
@@ -164,6 +168,10 @@ impl Range {
 
     /// Get biome at specified coordinates
     pub fn get_biome_at(&self, x: i32, y: i32, z: i32) -> Result<Biome, ()> {
+        let arr = ndarray::ArrayView3::from_shape(
+            (self.sx as usize, self.sy as usize, self.sz as usize), 
+            &self.cache
+        ).unwrap();
         let b = self
             .cache
             .get(
@@ -171,6 +179,7 @@ impl Range {
                     as usize,
             )
             .unwrap();
+        let bb = arr.get(((x - self.x) as usize, (y - self.y) as usize, (z - self.z) as usize)).unwrap().to_owned();
         let b = Biome::try_from(*b).ok();
         match b {
             Some(b) => Ok(b),
@@ -205,7 +214,7 @@ impl Range {
 
     fn get_range(&self) -> cubiomes_sys::Range {
         cubiomes_sys::Range {
-            scale: self.scale,
+            scale: self.scale.clone() as i32,
             x: self.x,
             z: self.z,
             sx: self.sx,
@@ -214,6 +223,15 @@ impl Range {
             sy: self.sy,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Scale{
+	S1 = 1,
+    S4 = 4,
+    S16 = 16,
+    S64 = 64,
+    S256 = 256,
 }
 
 /// Initialize biome colors with default values

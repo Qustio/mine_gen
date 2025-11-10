@@ -7,16 +7,39 @@ This repository contains:
 - cubiomes-sys - rust crate with unsafe bindings of cubiomes
 - yarn - minecraft mappings for development
 
-# Build
-Clone repo with submodules
-For cubiomes lib use `cargo build --lib -p cubiomes` and test with `cargo test --lib -p cubiomes` same as cubiomes-sys
+# TODO 📝
+- [ ] Make proper gtk widget `mapwidget`
+- [ ] Add dependencies to meson project
+- [ ] Add translations
+- [ ] Fix of map moving only per pixel by changing generation width and height values
+- [ ] Make generation work faster by multithreading it
+- [ ] Sync meson project version and authors with provided by cubiomes-gtkl/Cargo.toml. Something like this [Pika Backup](https://gitlab.gnome.org/World/pika-backup/-/blob/main/meson.build?ref_type=heads) does
+- [ ] Use gtk
+- [ ] Fix flatpak build
+- [ ] Remove yarn and add script to copy sources of minecraft since minecraft build is not using obfuscation anymore
+- [ ] Reimplement cubiomes into own generator layer by layer
 
-For cubiomes-gtk use:
-- `cargo build -p cubiomes-gtk` but compile glib-resources itself
-- Meson build system
-  - `meson setup _build`
-  - `meson compile -C _build`
-  - `meson install -C _build`
+# Build
+## cubiomes-gtk
+Project supports both Cargo and Meson build system. Meson is used for flatpak and releases when Cargo used for development.
+- Cargo
+```
+cargo build -p cubiomes-gtk
+```
+- Meson
+```
+meson setup _build
+meson compile -C _build
+meson install -C _build
+```
+## cubiomes
+Clone repo with submodules
+
+```git clone https://github.com/Qustio/mine_gen --recursive```
+
+Build and test the lib
+
+```cargo test --lib -p cubiomes```
 
 # Wip GUI
 <img alt="image" src="assets/guipreview.png" />

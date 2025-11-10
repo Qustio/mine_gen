@@ -3,4 +3,4 @@
 data/com.qustio.cubiomesgtk.desktop.in
 data/com.qustio.cubiomesgtk.metainfo.xml.in
 data/com.qustio.cubiomesgtk.gschema.xml
-src/window.ui
+src/window/window.blp

@@ -1,0 +1,54 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $CubiomesgtkWindow: Adw.ApplicationWindow {
+  title: _("CubiomesGTK");
+  default-width: 800;
+  default-height: 600;
+
+  content: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {
+      [start]
+      Box {
+        Button clicked1 {
+          //clicked => $add_one() swapped;
+        }
+
+        Button clicked2 {
+          //clicked => $remove_one() swapped;
+        }
+      }
+
+      [end]
+      MenuButton {
+        primary: true;
+        icon-name: "open-menu-symbolic";
+        tooltip-text: _("Main Menu");
+        menu-model: primary_menu;
+      }
+    }
+
+    content: $MapWidget map{
+    };
+  };
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: _("Preferences");
+      action: "app.preferences";
+    }
+
+    item {
+      label: _("_Keyboard Shortcuts");
+      action: "app.shortcuts";
+    }
+
+    item {
+      label: _("_About CubiomesGTK");
+      action: "app.about";
+    }
+  }
+}
